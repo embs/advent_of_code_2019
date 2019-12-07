@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 fn walk_up(x: i32, y: i32, steps: i32) -> [i32;2] {
     //println!("Walking U {} {}", x, y + steps);
 
@@ -23,11 +25,15 @@ fn walk_left(x: i32, y: i32, steps: i32) -> [i32;2] {
 }
 
 fn main() {
-    // Sample 1. Answer: 159
+    // Example. Answer: 30
+    //let wire_1_path = "R8,U5,L5,D3";
+    //let wire_2_path = "U7,R6,D4,L4";
+
+    // Sample 1. Answer: 610
     //let wire_1_path = "R75,D30,R83,U83,L12,D49,R71,U7,L72";
     //let wire_2_path = "U62,R66,U55,R34,D71,R55,D58,R83";
 
-    // Sample 2. Answer: 135
+    // Sample 2. Answer: 410
     //let wire_1_path = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51";
     //let wire_2_path = "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7";
 
@@ -38,7 +44,9 @@ fn main() {
     let mut wire_1_points = Vec::new();
     let mut wire_1_position = [0, 0];
     let mut wire_2_position = [0, 0];
-    let mut closest_intersection_distance: i32 = 0;
+    let mut fewest_steps_to_intersection = 0;
+    let mut wire_1_steps_to_point = HashMap::new();
+    let mut steps_counter = 0;
 
     // Collect all wire 1 points.
     for w in wire_1_path.split(",") {
@@ -48,28 +56,53 @@ fn main() {
 
         if direction == 'U' {
             for i in 1..=steps {
-                wire_1_points.push(walk_up(wire_1_position[0], wire_1_position[1], i));
+                steps_counter = steps_counter + 1;
+                let point = walk_up(wire_1_position[0], wire_1_position[1], i);
+                wire_1_points.push(point);
+                if !wire_1_steps_to_point.contains_key(&point) {
+                    wire_1_steps_to_point.insert(point, steps_counter);
+                }
             }
             wire_1_position[1] = wire_1_position[1] + steps;
         } else if direction == 'R' {
             for i in 1..=steps {
-                wire_1_points.push(walk_right(wire_1_position[0], wire_1_position[1], i));
+                steps_counter = steps_counter + 1;
+                let point = walk_right(wire_1_position[0], wire_1_position[1], i);
+                wire_1_points.push(point);
+                if !wire_1_steps_to_point.contains_key(&point) {
+                    wire_1_steps_to_point.insert(point, steps_counter);
+                }
             }
             wire_1_position[0] = wire_1_position[0] + steps;
         } else if direction == 'D' {
             for i in 1..=steps {
-                wire_1_points.push(walk_down(wire_1_position[0], wire_1_position[1], i));
+                steps_counter = steps_counter + 1;
+                let point = walk_down(wire_1_position[0], wire_1_position[1], i);
+                wire_1_points.push(point);
+                if !wire_1_steps_to_point.contains_key(&point) {
+                    wire_1_steps_to_point.insert(point, steps_counter);
+                }
             }
             wire_1_position[1] = wire_1_position[1] - steps;
         } else if direction == 'L' {
             for i in 1..=steps {
-                wire_1_points.push(walk_left(wire_1_position[0], wire_1_position[1], i));
+                steps_counter = steps_counter + 1;
+                let point = walk_left(wire_1_position[0], wire_1_position[1], i);
+                wire_1_points.push(point);
+                if !wire_1_steps_to_point.contains_key(&point) {
+                    wire_1_steps_to_point.insert(point, steps_counter);
+                }
             }
             wire_1_position[0] = wire_1_position[0] - steps;
         } else {
             panic!("Unknown direction: {}", direction);
         }
     }
+
+    // Reset steps_counter here: it will accumulate wire_2's steps from now on and add to wire_1's
+    // steps count (from the wire_1_steps_to_point HashMap) to the intersection point (when we find
+    // what this point is).
+    steps_counter = 0;
 
     // Go through wire 2 points checking if they intersect wire 1.
     for w in wire_2_path.split(",") {
@@ -79,48 +112,52 @@ fn main() {
 
         if direction == 'U' {
             for i in 1..=steps {
+                steps_counter = steps_counter + 1;
                 let point = walk_up(wire_2_position[0], wire_2_position[1], i);
 
                 if wire_1_points.contains(&point) {
-                    let distance = (0 - point[0]).abs() + (0 - point[1]).abs();
-                    if closest_intersection_distance == 0 || distance < closest_intersection_distance {
-                        closest_intersection_distance = distance;
+                    let steps_to_intersection = wire_1_steps_to_point[&point] + steps_counter;
+                    if fewest_steps_to_intersection == 0 || steps_to_intersection < fewest_steps_to_intersection {
+                        fewest_steps_to_intersection = steps_to_intersection;
                     }
                 }
             }
             wire_2_position[1] = wire_2_position[1] + steps;
         } else if direction == 'R' {
             for i in 1..=steps {
+                steps_counter = steps_counter + 1;
                 let point = walk_right(wire_2_position[0], wire_2_position[1], i);
 
                 if wire_1_points.contains(&point) {
-                    let distance = (0 - point[0]).abs() + (0 - point[1]).abs();
-                    if closest_intersection_distance == 0 || distance < closest_intersection_distance {
-                        closest_intersection_distance = distance;
+                    let steps_to_intersection = wire_1_steps_to_point[&point] + steps_counter;
+                    if fewest_steps_to_intersection == 0 || steps_to_intersection < fewest_steps_to_intersection {
+                        fewest_steps_to_intersection = steps_to_intersection;
                     }
                 }
             }
             wire_2_position[0] = wire_2_position[0] + steps;
         } else if direction == 'D' {
             for i in 1..=steps {
+                steps_counter = steps_counter + 1;
                 let point = walk_down(wire_2_position[0], wire_2_position[1], i);
 
                 if wire_1_points.contains(&point) {
-                    let distance = (0 - point[0]).abs() + (0 - point[1]).abs();
-                    if closest_intersection_distance == 0 || distance < closest_intersection_distance {
-                        closest_intersection_distance = distance;
+                    let steps_to_intersection = wire_1_steps_to_point[&point] + steps_counter;
+                    if fewest_steps_to_intersection == 0 || steps_to_intersection < fewest_steps_to_intersection {
+                        fewest_steps_to_intersection = steps_to_intersection;
                     }
                 }
             }
             wire_2_position[1] = wire_2_position[1] - steps;
         } else if direction == 'L' {
             for i in 1..=steps {
+                steps_counter = steps_counter + 1;
                 let point = walk_left(wire_2_position[0], wire_2_position[1], i);
 
                 if wire_1_points.contains(&point) {
-                    let distance = (0 - point[0]).abs() + (0 - point[1]).abs();
-                    if closest_intersection_distance == 0 || distance < closest_intersection_distance {
-                        closest_intersection_distance = distance;
+                    let steps_to_intersection = wire_1_steps_to_point[&point] + steps_counter;
+                    if fewest_steps_to_intersection == 0 || steps_to_intersection < fewest_steps_to_intersection {
+                        fewest_steps_to_intersection = steps_to_intersection;
                     }
                 }
             }
@@ -130,9 +167,5 @@ fn main() {
         }
     }
 
-    println!("closest: {}", closest_intersection_distance);
-
-    //for i in wire_1_points {
-    //    println!("{}", i);
-    //}
+    println!("{}", fewest_steps_to_intersection);
 }
